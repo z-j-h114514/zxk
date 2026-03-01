@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>大文件自动合并下载</title>
+<style>
+  *{box-sizing:border-box}
+  body{background:#f4f5f7;font-family:Arial;padding:25px;margin:0}
+  .box{max-width:700px;margin:40px auto;background:#fff;border-radius:14px;padding:30px;box-shadow:0 2px 12px #0000000b}
+  .btn{padding:14px 28px;background:#0070f3;color:white;border:none;border-radius:10px;font-size:16px;cursor:pointer}
+  #log{margin-top:20px;padding:14px;background:#f5f5f5;border-radius:8px;min-height:60px}
+</style>
+
+<div class="box">
+  <h1>📥 大文件下载（自动合并）</h1>
+  <p>点击按钮，自动下载所有分卷并合并成完整文件</p>
+  <button class="btn" onclick="startMerge()">开始下载</button>
+  <div id="log" id="log"></div>
+</div>
+
+<script>
+// ======================
+// 你只需要改这里！
+// ======================
+const config = {
+  prefix: "azxk",      // 文件名前缀（.z01 前面的名字）
+  start: 1,           // 从 z01 开始
+  end: 49,             // 最后一个分卷数字（例如 z05 就写 5）
+  finalName: "zxk.zip" // 最后下载的文件名
+};
+
+// 下面代码不用动！
+async function startMerge() {
+  const log = document.getElementById("log");
+  const parts = [];
+
+  try {
+    // 1. 下载所有 .z01 .z02 ...
+    for (let i = config.start; i <= config.end; i++) {
+      const num = i.toString().padStart(2, '0');
+      const url = `${config.prefix}.z${num}`;
+      log.textContent = `正在下载：${url}`;
+
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`下载失败：${url}`);
+      const buf = await res.arrayBuffer();
+      parts.push(buf);
+    }
+
+    // 2. 下载最后的 .zip
+    const zipUrl = `${config.prefix}.zip`;
+    log.textContent = `正在下载：${zipUrl}`;
+    const res = await fetch(zipUrl);
+    const zipBuf = await res.arrayBuffer();
+    parts.push(zipBuf);
+
+    // 3. 合并
+    log.textContent = "✅ 下载完成，正在合并文件...";
+    const blob = new Blob(parts);
+    const url = URL.createObjectURL(blob);
+
+    // 4. 自动下载
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = config.finalName;
+    a.click();
+
+    URL.revokeObjectURL(url);
+    log.textContent = "🎉 合并完成！文件已开始下载";
+
+  } catch (e) {
+    log.textContent = "❌ 错误：" + e.message;
+  }
+}
+</script>
